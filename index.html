@@ -6,7 +6,7 @@
 <title>202 일기장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gaegu:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Pen+Script&family=Hi+Melody&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Hi+Melody&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
 <style>
   :root{
@@ -30,7 +30,7 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    font-family: 'IBM Plex Sans KR', 'Gowun Dodum', system-ui, sans-serif;
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
     background: var(--bg);
     background-image:
       radial-gradient(circle at 12% 18%, rgba(255,210,214,0.35) 0%, transparent 35%),
@@ -186,7 +186,8 @@
     filter: drop-shadow(0 6px 12px rgba(74, 59, 46, 0.18));
   }
   .cover-title{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 46px;
     font-weight: 700;
     color: var(--ink);
@@ -204,7 +205,8 @@
     display: flex; flex-direction: column; align-items: center; gap: 16px;
   }
   .cover-year{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 24px;
     color: rgba(74, 59, 46, 0.55);
     letter-spacing: 4px;
@@ -240,7 +242,8 @@
   }
   .auth-card .logo-emoji{ font-size: 48px; margin-bottom: 8px; }
   .auth-card h1{
-    font-family:'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 32px;
     margin: 0 0 4px;
     color: var(--ink);
@@ -356,7 +359,8 @@
     gap: 12px;
   }
   .header-title{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 22px;
     font-weight: 700;
     color: var(--ink);
@@ -407,7 +411,8 @@
     padding: 24px 20px 120px;
   }
   .feed-intro{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 18px;
     color: var(--ink-soft);
     text-align:center;
@@ -587,7 +592,8 @@
     margin-bottom: 16px;
   }
   .modal-title{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 22px;
     font-weight: 700;
   }
@@ -725,7 +731,8 @@
 
   .comment-section{ margin-top: 18px; }
   .comment-section h4{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 17px;
     margin: 0 0 10px;
     color: var(--ink);
@@ -1276,7 +1283,8 @@
   }
   .book-arrow:disabled{ opacity: 0.35; cursor: not-allowed; }
   .book-page-num{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 17px;
     color: var(--ink);
     min-width: 60px;
@@ -1308,7 +1316,8 @@
     margin-bottom: 8px;
   }
   .editor-title{
-    font-family: 'Gaegu', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
     font-size: 20px;
     font-weight: 700;
   }
@@ -1758,10 +1767,10 @@
     <div class="header-inner">
       <div class="header-title clickable" onclick="appBackToCover()" title="표지로 돌아가기">📓 202 일기장</div>
       <div class="header-actions">
-        <button class="icon-btn" onclick="appOpenCoverEditor()" title="내 표지 꾸미기">🖼</button>
         <div class="nick-chip" onclick="appOpenNick()">
           <span id="myNickDisplay">─</span> ✏️
         </div>
+        <button class="icon-btn" onclick="appOpenCoverEditor()" title="내 표지 꾸미기">🌸</button>
         <button class="icon-btn admin-btn" onclick="adminOpenStudents()" title="학생 관리">⚙</button>
         <button class="icon-btn" onclick="appLogout()" title="나가기">⎋</button>
       </div>
@@ -2784,8 +2793,8 @@
     editor.canvas.sendToBack(bg);
 
     const items = [
-      { text: '202 일기장', topRatio: 0.40, fontSize: 42, fontWeight: 700, fill: '#4A3B2E', fontFamily: "'Gaegu', sans-serif" },
-      { text: '2026',       topRatio: 0.85, fontSize: 22, fill: 'rgba(74,59,46,0.55)', fontFamily: "'Gaegu', sans-serif", charSpacing: 400 }
+      { text: '202 일기장', topRatio: 0.40, fontSize: 38, fontWeight: 700, fill: '#4A3B2E', fontFamily: "'Noto Sans KR', sans-serif" },
+      { text: '2026',       topRatio: 0.85, fontSize: 20, fontWeight: 500, fill: 'rgba(74,59,46,0.55)', fontFamily: "'Noto Sans KR', sans-serif", charSpacing: 400 }
     ];
     items.forEach(it=>{
       const t = new fabric.Text(it.text, {
