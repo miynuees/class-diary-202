@@ -1474,6 +1474,27 @@
   @media (min-width: 640px){
     .paper-grid{ grid-template-columns: repeat(4, 1fr); }
   }
+  /* 마스킹테이프 그리드 (가로 길쭉한 미리보기 한 줄씩) */
+  .tape-grid{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tape-thumb{
+    height: 26px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-shadow: 0 1px 3px rgba(74, 59, 46, 0.12);
+  }
+  .tape-thumb:hover{
+    transform: translateX(3px) rotate(-1deg);
+    box-shadow: 0 3px 8px rgba(74, 59, 46, 0.2);
+  }
+
   /* 표지 배경 그리드 */
   .theme-grid{
     display: grid;
@@ -1881,6 +1902,7 @@
       <button class="tool-btn" data-tool="theme" onclick="editorTogglePanel('theme')" style="display:none;">🎨 배경</button>
       <button class="tool-btn" data-tool="text" onclick="editorAddText()">✎ 글자</button>
       <button class="tool-btn" data-tool="sticker" onclick="editorTogglePanel('sticker')">✿ 스티커</button>
+      <button class="tool-btn" data-tool="tape" onclick="editorTogglePanel('tape')">📏 테이프</button>
       <button class="tool-btn danger" id="toolDelete" onclick="editorDeleteSelected()" style="display:none;">🗑 지우기</button>
     </div>
 
@@ -1914,6 +1936,13 @@
       <button class="panel-close" onclick="editorClosePanel()">×</button>
       <div class="sticker-cats" id="stickerCats"></div>
       <div class="sticker-grid" id="stickerGrid"></div>
+    </div>
+
+    <!-- 마스킹테이프 패널 -->
+    <div class="tool-panel" id="panelTape">
+      <button class="panel-close" onclick="editorClosePanel()">×</button>
+      <div class="panel-title">마스킹 테이프를 골라보세요</div>
+      <div class="tape-grid" id="tapeGrid"></div>
     </div>
 
     <div class="editor-options">
@@ -2594,6 +2623,49 @@
     cream:  {name:'크림',   bg:'#FFF6DC', pattern:`<pattern id='p' width='30' height='30' patternUnits='userSpaceOnUse'><circle cx='15' cy='15' r='0.8' fill='#E5D49C'/></pattern>`}
   };
 
+  // 마스킹테이프 12종 (200x26 SVG 인라인)
+  const TAPES = [
+    {key:'pink-check',  name:'핑크 체크', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><pattern id='p' width='12' height='12' patternUnits='userSpaceOnUse'><rect width='6' height='6' fill='#F5A5AB' opacity='0.5'/><rect x='6' y='6' width='6' height='6' fill='#F5A5AB' opacity='0.5'/></pattern></defs><rect width='200' height='26' fill='#FFD2D6' opacity='0.92'/><rect width='200' height='26' fill='url(#p)'/></svg>`},
+    {key:'sky-stripe',  name:'하늘 줄',   svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#CFE6F5' opacity='0.92'/><line x1='0' y1='8' x2='200' y2='8' stroke='#7BA8CE' stroke-width='1' opacity='0.55'/><line x1='0' y1='18' x2='200' y2='18' stroke='#7BA8CE' stroke-width='1' opacity='0.55'/></svg>`},
+    {key:'mint-dot',    name:'민트 도트', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><pattern id='p' width='10' height='10' patternUnits='userSpaceOnUse'><circle cx='5' cy='5' r='1.4' fill='#5A9070' opacity='0.55'/></pattern></defs><rect width='200' height='26' fill='#D5EFDC' opacity='0.92'/><rect width='200' height='26' fill='url(#p)'/></svg>`},
+    {key:'beige-plain', name:'베이지',    svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#FBF1E2' opacity='0.92'/></svg>`},
+    {key:'lav-star',    name:'라벤더 별', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><pattern id='p' width='14' height='14' patternUnits='userSpaceOnUse'><text x='7' y='10' text-anchor='middle' font-size='9' fill='#9985E0' opacity='0.6'>✦</text></pattern></defs><rect width='200' height='26' fill='#E2DCFF' opacity='0.92'/><rect width='200' height='26' fill='url(#p)'/></svg>`},
+    {key:'butter-grid', name:'버터 격자', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><pattern id='p' width='10' height='10' patternUnits='userSpaceOnUse'><path d='M 10 0 L 0 0 0 10' fill='none' stroke='#C99B3F' stroke-width='0.5' opacity='0.55'/></pattern></defs><rect width='200' height='26' fill='#FFF1B8' opacity='0.92'/><rect width='200' height='26' fill='url(#p)'/></svg>`},
+    {key:'coral',       name:'코랄',      svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#FFB8B8' opacity='0.92'/></svg>`},
+    {key:'pink-heart',  name:'핑크 하트', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><pattern id='p' width='14' height='14' patternUnits='userSpaceOnUse'><text x='7' y='11' text-anchor='middle' font-size='9' fill='#E55A6A' opacity='0.55'>♥</text></pattern></defs><rect width='200' height='26' fill='#FFE4E5' opacity='0.92'/><rect width='200' height='26' fill='url(#p)'/></svg>`},
+    {key:'kraft',       name:'크라프트', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#C2A07A' opacity='0.92'/></svg>`},
+    {key:'black-line',  name:'검정 줄',   svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#3A3A3A' opacity='0.92'/><line x1='0' y1='13' x2='200' y2='13' stroke='#FFF' stroke-width='1.5' opacity='0.45'/></svg>`},
+    {key:'gradient',    name:'그라데이션', svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='0'><stop offset='0%' stop-color='#FFD2D6'/><stop offset='50%' stop-color='#E2DCFF'/><stop offset='100%' stop-color='#D5EFDC'/></linearGradient></defs><rect width='200' height='26' fill='url(#g)' opacity='0.92'/></svg>`},
+    {key:'white',       name:'흰 무지',    svg:`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='26'><rect width='200' height='26' fill='#FFFCF7' opacity='0.92' stroke='#E5D5C0' stroke-width='0.5'/></svg>`}
+  ];
+
+  function tapeDataURL(tape){
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(tape.svg)));
+  }
+  function buildTapeGrid(){
+    const grid = document.getElementById('tapeGrid');
+    grid.innerHTML = TAPES.map(t => `
+      <div class="tape-thumb" onclick="editorAddTape('${t.key}')" title="${t.name}" style="background-image: url('${tapeDataURL(t)}')"></div>
+    `).join('');
+  }
+  function editorAddTape(key){
+    const tape = TAPES.find(t => t.key === key);
+    if(!tape) return;
+    fabric.Image.fromURL(tapeDataURL(tape), (img) => {
+      const angle = (Math.random() * 16 - 8); // -8 ~ +8 도 살짝 기울어짐
+      img.set({
+        left: CANVAS_W / 2,
+        top: CANVAS_H * 0.3,
+        originX: 'center', originY: 'center',
+        angle,
+      });
+      img.isTape = true;
+      editor.canvas.add(img);
+      editor.canvas.setActiveObject(img);
+      editor.canvas.requestRenderAll();
+    });
+  }
+
   // 표지 배경 테마 (그라데이션 6 + 단색 6)
   const COVER_THEMES = {
     spring:   { name: '봄빛',   gradient: [{offset:0, color:'#FFD2D6'},{offset:0.55, color:'#E2DCFF'},{offset:1, color:'#D5EFDC'}] },
@@ -2723,6 +2795,7 @@
       buildTextPanel();
       buildStickerPanel();
       buildThemeGrid();
+      buildTapeGrid();
 
       if(mode === 'edit' && entry?.decoration_data){
         editorLoad(entry.decoration_data);
@@ -3028,7 +3101,7 @@
     editor.canvas.discardActiveObject();
     editor.canvas.renderAll();
 
-    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate']);
+    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape']);
     // 또렷한 썸네일 (캔버스 2배 픽셀로 — 큰 화면에서도 깨지지 않게)
     const thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
 
