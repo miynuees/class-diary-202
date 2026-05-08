@@ -47,11 +47,13 @@
   /* ───── 표지 ───── */
   .cover-wrap{
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     padding: 28px;
     perspective: 1800px;
+    gap: 20px;
   }
   .cover{
     width: 100%;
@@ -1611,24 +1613,22 @@
 <!-- ─────────── 표지 ─────────── -->
 <div class="screen active" id="screen-cover">
   <div class="cover-wrap">
-    <div style="display:flex; flex-direction:column; align-items:center;">
-      <div class="cover" id="diaryCover" onclick="appOpenCover()">
-        <div class="cover-custom-image" id="coverCustomImage"></div>
-        <div class="cover-content">
-          <div class="cover-stars">✦ ✿ ✦</div>
-          <div class="cover-middle">
-            <div class="cover-icon">📓</div>
-            <h1 class="cover-title">202 일기장</h1>
-            <div class="cover-sub">우리 반 마음을<br>모으는 곳</div>
-          </div>
-          <div class="cover-bottom">
-            <div class="cover-year">2026</div>
-            <div class="cover-tap">✿ 탭해서 펼치기 ✿</div>
-          </div>
+    <div class="cover" id="diaryCover" onclick="appOpenCover()">
+      <div class="cover-custom-image" id="coverCustomImage"></div>
+      <div class="cover-content">
+        <div class="cover-stars">✦ ✿ ✦</div>
+        <div class="cover-middle">
+          <div class="cover-icon">📓</div>
+          <h1 class="cover-title">202 일기장</h1>
+          <div class="cover-sub">우리 반 마음을<br>모으는 곳</div>
+        </div>
+        <div class="cover-bottom">
+          <div class="cover-year">2026</div>
+          <div class="cover-tap">✿ 탭해서 펼치기 ✿</div>
         </div>
       </div>
-      <button class="cover-edit-btn" id="coverEditBtn" onclick="appOpenCoverEditor(event)">✎ 내 표지 꾸미기</button>
     </div>
+    <button class="cover-edit-btn" id="coverEditBtn" onclick="appOpenCoverEditor(event)">✎ 내 표지 꾸미기</button>
   </div>
 </div>
 
