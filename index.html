@@ -2648,11 +2648,37 @@
       <div class="tape-thumb" onclick="editorAddTape('${t.key}')" title="${t.name}" style="background-image: url('${tapeDataURL(t)}')"></div>
     `).join('');
   }
+  // 마테 객체에 일관되게 적용하는 잠금/핸들/scaling 후크
+  function applyTapeBehavior(rect){
+    rect.set({
+      lockScalingY: true,
+      lockSkewingX: true,
+      lockSkewingY: true,
+    });
+    rect.setControlsVisibility({
+      tl: false, tr: false, bl: false, br: false,
+      mt: false, mb: false,
+      ml: true, mr: true,
+      mtr: true
+    });
+    // scaling 도중 scaleX → width로 즉시 변환 (무늬 stretch 방지, 옆으로 반복)
+    rect.off('scaling.tape');
+    rect.on('scaling', function(){
+      if(rect.scaleX && rect.scaleX !== 1){
+        rect.set({
+          width: Math.max(20, rect.width * rect.scaleX),
+          scaleX: 1
+        });
+      }
+      // scaleY가 어쩌다 변경되면 강제로 1로
+      if(rect.scaleY !== 1) rect.set({ scaleY: 1 });
+    });
+  }
+
   function editorAddTape(key){
     const tape = TAPES.find(t => t.key === key);
     if(!tape) return;
     fabric.Image.fromURL(tapeDataURL(tape), (img) => {
-      // 패턴으로 만들어 가로 길이 늘려도 세로 비율 유지 + 무늬가 반복되게
       const pattern = new fabric.Pattern({
         source: img.getElement(),
         repeat: 'repeat-x'
@@ -2668,16 +2694,9 @@
         strokeWidth: 0,
       });
       rect.isTape = true;
-      rect.lockScalingY = true; // 세로 잠금
       editor.canvas.add(rect);
       editor.canvas.setActiveObject(rect);
-      // 좌/우 핸들만 + 회전만 활성화
-      rect.setControlsVisibility({
-        tl: false, tr: false, bl: false, br: false,
-        mt: false, mb: false,
-        ml: true, mr: true,
-        mtr: true
-      });
+      applyTapeBehavior(rect);
       editor.canvas.requestRenderAll();
     });
   }
@@ -2862,6 +2881,10 @@
   function editorOnSelection(){
     const sel = editor.canvas.getActiveObject();
     document.getElementById('toolDelete').style.display = sel ? 'flex' : 'none';
+    // 마테가 선택되면 매번 핸들·잠금 보장
+    if(sel && sel.isTape){
+      applyTapeBehavior(sel);
+    }
     if(sel && (sel.type === 'i-text' || sel.type === 'textbox')){
       // 현재 스타일을 패널에 반영
       editor.textColor = sel.fill || editor.textColor;
@@ -3210,14 +3233,7 @@
           o.set({selectable: false, evented: false, hoverCursor: 'default'});
         }
         if(o.isTape){
-          // 테이프는 가로만 늘리기 + 회전 (세로 잠금)
-          o.lockScalingY = true;
-          o.setControlsVisibility({
-            tl: false, tr: false, bl: false, br: false,
-            mt: false, mb: false,
-            ml: true, mr: true,
-            mtr: true
-          });
+          applyTapeBehavior(o);
         }
       });
       editor.canvas.renderAll();
