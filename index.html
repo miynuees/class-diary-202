@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Hi+Melody&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
 <style>
   :root{
@@ -30,7 +31,7 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    font-family: 'Noto Sans KR', system-ui, sans-serif;
+    font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
     background: var(--bg);
     background-image:
       radial-gradient(circle at 12% 18%, rgba(255,210,214,0.35) 0%, transparent 35%),
@@ -186,14 +187,13 @@
     filter: drop-shadow(0 6px 12px rgba(74, 59, 46, 0.18));
   }
   .cover-title{
-    font-family: 'Noto Sans KR', sans-serif;
-    font-weight: 700;
-    font-size: 46px;
-    font-weight: 700;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    font-size: 32px;
     color: var(--ink);
-    margin: 0 0 6px;
-    letter-spacing: -1px;
-    text-shadow: 0 2px 4px rgba(255,255,255,0.4);
+    margin: 0;
+    letter-spacing: -1.2px;
+    text-shadow: 0 2px 4px rgba(255,255,255,0.35);
   }
   .cover-sub{
     font-family: 'Gowun Dodum', sans-serif;
@@ -356,29 +356,49 @@
   .header-inner{
     max-width: 720px; margin:0 auto;
     display:flex; align-items:center; justify-content:space-between;
-    gap: 12px;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
   .header-title{
-    font-family: 'Noto Sans KR', sans-serif;
-    font-weight: 700;
-    font-size: 22px;
-    font-weight: 700;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
     color: var(--ink);
     display:flex; align-items:center; gap:6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
   }
   .header-title.clickable{ cursor: pointer; transition: color .15s; }
   .header-title.clickable:hover{ color: var(--pink-deep); }
-  .header-actions{ display:flex; gap:8px; align-items:center; }
+  .header-actions{
+    display:flex; gap:6px; align-items:center;
+    flex-shrink: 1; min-width: 0;
+  }
   .nick-chip{
     background: var(--paper);
     border: 1.5px solid var(--line);
-    padding: 7px 12px;
+    padding: 7px 11px;
     border-radius: 20px;
     font-size: 13px;
     color: var(--ink);
     cursor: pointer;
-    display:flex; align-items:center; gap:6px;
+    display:flex; align-items:center; gap:5px;
     transition: border-color .15s;
+    white-space: nowrap;
+    max-width: 110px;
+    overflow: hidden;
+  }
+  .nick-chip span{
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 480px){
+    .app-header{ padding: 12px 14px; }
+    .header-title{ font-size: 15.5px; }
+    .header-actions{ gap: 4px; }
+    .icon-btn{ width: 32px; height: 32px; font-size: 14px; }
+    .nick-chip{ max-width: 70px; padding: 6px 9px; font-size: 12px; }
   }
   .nick-chip:hover{ border-color: var(--pink-deep); }
   .icon-btn{
@@ -1208,9 +1228,44 @@
   .feed.view-book #cardList{
     position: relative;
     min-height: 500px;
+    max-width: 480px;
+    margin: 0 auto;
     perspective: 1800px;
     perspective-origin: center;
   }
+  /* 책 모드 무대 (카드 + 양 옆 화살표) */
+  .book-stage{
+    position: relative;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .book-arrow-side{ display: none; }
+  .feed.view-book .book-arrow-side{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line);
+    background: rgba(255, 253, 250, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--ink);
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: var(--shadow-soft);
+    transition: all .15s;
+    align-items: center; justify-content: center;
+  }
+  .feed.view-book .book-arrow-side{ display: flex; }
+  .feed.view-book .book-arrow-side:hover:not(:disabled){
+    border-color: var(--pink-deep);
+    transform: translateY(-50%) scale(1.06);
+  }
+  .feed.view-book .book-arrow-side:disabled{ opacity: 0.3; cursor: not-allowed; }
+  .feed.view-book .book-arrow-side.prev{ left: 4px; }
+  .feed.view-book .book-arrow-side.next{ right: 4px; }
   .feed.view-book .diary-card{
     display: none;
     margin: 0 auto 16px;
@@ -1771,8 +1826,8 @@
           <span id="myNickDisplay">─</span> ✏️
         </div>
         <button class="icon-btn" onclick="appOpenCoverEditor()" title="내 표지 꾸미기">🌸</button>
-        <button class="icon-btn admin-btn" onclick="adminOpenStudents()" title="학생 관리">⚙</button>
-        <button class="icon-btn" onclick="appLogout()" title="나가기">⎋</button>
+        <button class="icon-btn admin-btn" onclick="adminOpenStudents()" title="학생 관리">👥</button>
+        <button class="icon-btn" onclick="appLogout()" title="나가기">🚪</button>
       </div>
     </div>
   </header>
@@ -1790,15 +1845,19 @@
         <button class="feed-tab" data-tab="mine" onclick="appSwitchTab('mine')">나의 일기장</button>
       </div>
       <div class="view-mode-toggle">
-        <button class="view-mode-btn" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">⊞</button>
+        <button class="view-mode-btn" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">🗂️</button>
         <button class="view-mode-btn active" data-view="book" onclick="appSwitchView('book')" title="한 장씩 넘기기">📖</button>
       </div>
     </div>
-    <div id="cardList"></div>
+    <div class="book-stage">
+      <button class="book-arrow-side prev" id="bookPrev" onclick="appBookPrev()" title="이전 장">‹</button>
+      <div id="cardList"></div>
+      <button class="book-arrow-side next" id="bookNext" onclick="appBookNext()" title="다음 장">›</button>
+    </div>
     <div class="book-controls">
-      <button class="book-arrow" id="bookPrev" onclick="appBookPrev()">‹</button>
+      <button class="book-arrow" id="bookFirst" onclick="appBookFirst()" title="첫 장으로">⏮</button>
       <span class="book-page-num" id="bookPageNum">1 / 1</span>
-      <button class="book-arrow" id="bookNext" onclick="appBookNext()">›</button>
+      <button class="book-arrow" id="bookLast" onclick="appBookLast()" title="마지막 장으로">⏭</button>
     </div>
   </main>
 
@@ -2290,6 +2349,22 @@
       updateBookActive('next');
     }
   }
+  function appBookFirst(){
+    if(bookIndex !== 0){
+      const direction = 'prev';
+      bookIndex = 0;
+      updateBookActive(direction);
+    }
+  }
+  function appBookLast(){
+    const cards = document.querySelectorAll('#cardList .diary-card');
+    if(cards.length === 0) return;
+    const last = cards.length - 1;
+    if(bookIndex !== last){
+      bookIndex = last;
+      updateBookActive('next');
+    }
+  }
   function updateBookActive(direction){
     const cards = document.querySelectorAll('#cardList .diary-card');
     cards.forEach((c, i)=>{
@@ -2304,6 +2379,10 @@
     document.getElementById('bookPageNum').textContent = total > 0 ? `${bookIndex + 1} / ${total}` : '0 / 0';
     document.getElementById('bookPrev').disabled = bookIndex <= 0;
     document.getElementById('bookNext').disabled = bookIndex >= total - 1;
+    const firstBtn = document.getElementById('bookFirst');
+    const lastBtn = document.getElementById('bookLast');
+    if(firstBtn) firstBtn.disabled = bookIndex <= 0;
+    if(lastBtn) lastBtn.disabled = bookIndex >= total - 1;
   }
 
   // 북 모드: 터치 스와이프로 페이지 넘기기
@@ -2513,7 +2592,14 @@
     butter:   { name: '버터',   color: '#FFF1B8' },
     sage:     { name: '세이지', color: '#E0EBDC' },
     cream:    { name: '크림',   color: '#FFF6DC' },
-    paper:    { name: '흰색',   color: '#FFFCF7' }
+    paper:    { name: '흰색',   color: '#FFFCF7' },
+    // 어두운 계열 (텍스트는 자동으로 흰색으로 전환)
+    night:    { name: '밤하늘', gradient: [{offset:0, color:'#3B4A6F'},{offset:1, color:'#1B2440'}], dark: true },
+    forest:   { name: '깊은숲', gradient: [{offset:0, color:'#3D5A48'},{offset:1, color:'#1F3328'}], dark: true },
+    wine:     { name: '와인',   gradient: [{offset:0, color:'#6B2E3F'},{offset:1, color:'#3A1622'}], dark: true },
+    coffee:   { name: '커피',   color: '#5A3E2B', dark: true },
+    navy:     { name: '네이비', color: '#1F2D4A', dark: true },
+    charcoal: { name: '먹빛',   color: '#262626', dark: true }
   };
 
   const STICKER_LIB = {
@@ -2770,6 +2856,14 @@
     } else {
       bg.set('fill', theme.color);
     }
+    // 어두운 배경이면 텍스트 흰색, 밝은 배경이면 본래 진한 색
+    const isDark = !!theme.dark;
+    const titleColor = isDark ? '#FFFFFF' : '#4A3B2E';
+    const subColor   = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(74,59,46,0.55)';
+    editor.canvas.getObjects().filter(o => o.isCoverTemplate && o.type === 'text').forEach(t => {
+      // 큰 텍스트(제목, fontSize >= 28) vs 작은 텍스트(연도)
+      t.set('fill', (t.fontSize >= 28) ? titleColor : subColor);
+    });
     editor.canvas.requestRenderAll();
   }
 
