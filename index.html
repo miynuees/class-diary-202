@@ -1765,7 +1765,7 @@
       </div>
 
       <button class="btn btn-primary" id="loginBtn" onclick="appLogin()">들어가기</button>
-      <button class="btn btn-ghost" onclick="appPrefillTeacher()">🎓 선생님으로 들어가기</button>
+      <button class="btn btn-ghost" id="teacherBtn" onclick="appPrefillTeacher()">🎓 선생님으로 들어가기</button>
 
       <div class="auth-footer">
         처음이세요? <a onclick="appShowSignup()">계정 만들기</a>
@@ -2113,6 +2113,8 @@
   }
   function appShowLogin(){
     clearError('loginError');
+    const tb = document.getElementById('teacherBtn');
+    if(tb) tb.style.display = '';
     showScreen('screen-login');
   }
   function appBackToCover(){
@@ -2153,9 +2155,21 @@
   }
   function appPrefillTeacher(){
     document.getElementById('loginId').value = 'TEACHER';
+    document.getElementById('teacherBtn').style.display = 'none';
     document.getElementById('loginPin').focus();
     showToast('선생님 PIN을 입력하세요');
   }
+  // 학번을 다시 다른 값으로 바꾸면 선생님 버튼 다시 표시
+  document.addEventListener('DOMContentLoaded', () => {
+    const loginIdInput = document.getElementById('loginId');
+    if(loginIdInput){
+      loginIdInput.addEventListener('input', () => {
+        const v = loginIdInput.value.trim().toUpperCase();
+        const tb = document.getElementById('teacherBtn');
+        if(tb) tb.style.display = (v === 'TEACHER') ? 'none' : '';
+      });
+    }
+  });
 
   async function appLogin(){
     clearError('loginError');
@@ -2294,6 +2308,8 @@
     document.body.classList.remove('teacher-mode');
     document.getElementById('loginId').value = '';
     document.getElementById('loginPin').value = '';
+    const tb = document.getElementById('teacherBtn');
+    if(tb) tb.style.display = '';
     showScreen('screen-cover');
   }
 
