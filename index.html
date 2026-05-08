@@ -132,6 +132,7 @@
   /* 사용자가 꾸민 경우 기본 텍스트 숨기고, 페이지 펼치기 안내만 */
   .cover.has-custom .cover-stars,
   .cover.has-custom .cover-middle,
+  .cover.has-custom .cover-title,
   .cover.has-custom .cover-year{ display: none; }
   .cover.has-custom .cover-content{
     justify-content: flex-end;
@@ -2613,8 +2614,15 @@
       buildStickerPanel();
       buildThemeGrid();
 
-      if((mode === 'edit' || mode === 'cover') && entry?.decoration_data){
+      if(mode === 'edit' && entry?.decoration_data){
         editorLoad(entry.decoration_data);
+      } else if(mode === 'cover' && entry?.decoration_data){
+        // 옛 표지 데이터 로드 → 옛 템플릿 객체(별·이모지·부제 등) 제거 → 새 템플릿 다시 깔기 (스티커는 보존)
+        editor.canvas.loadFromJSON(entry.decoration_data, () => {
+          editor.canvas.getObjects().filter(o => o.isCoverTemplate).forEach(o => editor.canvas.remove(o));
+          loadCoverTemplate();
+          editor.canvas.renderAll();
+        });
       } else if(mode === 'cover'){
         loadCoverTemplate();
       } else {
