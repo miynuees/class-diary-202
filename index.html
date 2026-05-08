@@ -166,7 +166,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 44px 28px 30px 38px;
+    padding: 32% 28px 28px 38px;
     text-align: center;
     z-index: 3;
   }
@@ -361,6 +361,8 @@
     color: var(--ink);
     display:flex; align-items:center; gap:6px;
   }
+  .header-title.clickable{ cursor: pointer; transition: color .15s; }
+  .header-title.clickable:hover{ color: var(--pink-deep); }
   .header-actions{ display:flex; gap:8px; align-items:center; }
   .nick-chip{
     background: var(--paper);
@@ -1406,6 +1408,36 @@
   @media (min-width: 640px){
     .paper-grid{ grid-template-columns: repeat(4, 1fr); }
   }
+  /* 표지 배경 그리드 */
+  .theme-grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .theme-thumb{
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 2px solid var(--line);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s, border-color .15s;
+  }
+  .theme-thumb:hover{ transform: translateY(-2px); border-color: var(--pink-deep); }
+  .theme-thumb.selected{
+    border-color: var(--pink-deep);
+    box-shadow: 0 0 0 2px rgba(245,165,171,0.3);
+  }
+  .theme-name{
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.45));
+    color: #FFF;
+    font-size: 10px;
+    text-align: center;
+    padding: 4px 0 3px;
+    font-weight: 500;
+  }
   .paper-thumb{
     aspect-ratio: 3/4;
     border-radius: 10px;
@@ -1637,12 +1669,7 @@
     <div class="cover" id="diaryCover" onclick="appOpenCover()">
       <div class="cover-custom-image" id="coverCustomImage"></div>
       <div class="cover-content">
-        <div class="cover-stars">✦ ✿ ✦</div>
-        <div class="cover-middle">
-          <div class="cover-icon">📓</div>
-          <h1 class="cover-title">202 일기장</h1>
-          <div class="cover-sub">우리 반 마음을<br>모으는 곳</div>
-        </div>
+        <h1 class="cover-title">202 일기장</h1>
         <div class="cover-bottom">
           <div class="cover-year">2026</div>
           <div class="cover-tap">✿ 탭해서 펼치기 ✿</div>
@@ -1728,8 +1755,9 @@
 
   <header class="app-header">
     <div class="header-inner">
-      <div class="header-title">📓 202 일기장</div>
+      <div class="header-title clickable" onclick="appBackToCover()" title="표지로 돌아가기">📓 202 일기장</div>
       <div class="header-actions">
+        <button class="icon-btn" onclick="appOpenCoverEditor()" title="내 표지 꾸미기">🖼</button>
         <div class="nick-chip" onclick="appOpenNick()">
           <span id="myNickDisplay">─</span> ✏️
         </div>
@@ -1746,7 +1774,6 @@
       <strong>오늘은 누가 펜을 들까요?</strong><br>
       마음이 들 때 한 줄이라도 적어보세요.
     </div>
-    <button class="main-cover-btn" onclick="appOpenCoverEditor()">🖼 내 표지 꾸미기 — 스티커로 표지를 채워보세요</button>
     <div class="feed-tabs-row">
       <div class="feed-tabs">
         <button class="feed-tab active" data-tab="all" onclick="appSwitchTab('all')">전체</button>
@@ -1782,6 +1809,7 @@
 
     <div class="editor-toolbar">
       <button class="tool-btn" data-tool="paper" onclick="editorTogglePanel('paper')">📄 종이</button>
+      <button class="tool-btn" data-tool="theme" onclick="editorTogglePanel('theme')" style="display:none;">🎨 배경</button>
       <button class="tool-btn" data-tool="text" onclick="editorAddText()">✎ 글자</button>
       <button class="tool-btn" data-tool="sticker" onclick="editorTogglePanel('sticker')">✿ 스티커</button>
       <button class="tool-btn danger" id="toolDelete" onclick="editorDeleteSelected()" style="display:none;">🗑 지우기</button>
@@ -1792,6 +1820,13 @@
       <button class="panel-close" onclick="editorClosePanel()">×</button>
       <div class="panel-title">종이를 골라보세요</div>
       <div class="paper-grid" id="paperGrid"></div>
+    </div>
+
+    <!-- 표지 배경 패널 (cover 모드 전용) -->
+    <div class="tool-panel" id="panelTheme">
+      <button class="panel-close" onclick="editorClosePanel()">×</button>
+      <div class="panel-title">표지 색을 골라보세요</div>
+      <div class="theme-grid" id="themeGrid"></div>
     </div>
 
     <!-- 글자 패널 (글자 박스 선택 시 자동으로 열림) -->
@@ -1945,12 +1980,8 @@
   const REACTIONS = [
     {emoji:'❤️', label:'공감'},
     {emoji:'👍', label:'좋아요'},
-    {emoji:'🥹', label:'뭉클'},
     {emoji:'😂', label:'웃겨요'},
-    {emoji:'💪', label:'응원해요'},
-    {emoji:'🌸', label:'따뜻해요'},
-    {emoji:'✨', label:'멋져요'},
-    {emoji:'☕', label:'편안해요'}
+    {emoji:'🥹', label:'뭉클'}
   ];
 
   const CARD_COLORS = ['pink','lav','mint','yellow','peach','blue'];
@@ -2016,6 +2047,10 @@
     clearError('loginError');
     showScreen('screen-login');
   }
+  function appBackToCover(){
+    showScreen('screen-cover');
+  }
+
   function appOpenCover(){
     const cover = document.getElementById('diaryCover');
     cover.classList.add('opening');
@@ -2455,6 +2490,22 @@
     cream:  {name:'크림',   bg:'#FFF6DC', pattern:`<pattern id='p' width='30' height='30' patternUnits='userSpaceOnUse'><circle cx='15' cy='15' r='0.8' fill='#E5D49C'/></pattern>`}
   };
 
+  // 표지 배경 테마 (그라데이션 6 + 단색 6)
+  const COVER_THEMES = {
+    spring:   { name: '봄빛',   gradient: [{offset:0, color:'#FFD2D6'},{offset:0.55, color:'#E2DCFF'},{offset:1, color:'#D5EFDC'}] },
+    cherry:   { name: '벚꽃',   gradient: [{offset:0, color:'#FFE4EA'},{offset:1, color:'#F5A5BB'}] },
+    sky:      { name: '하늘',   gradient: [{offset:0, color:'#D7EAF6'},{offset:1, color:'#A8C0E8'}] },
+    sunset:   { name: '노을',   gradient: [{offset:0, color:'#FFD9A8'},{offset:1, color:'#FFA8B8'}] },
+    mint:     { name: '민트',   gradient: [{offset:0, color:'#D9F1E0'},{offset:1, color:'#A8DDC8'}] },
+    lavender: { name: '라벤더', gradient: [{offset:0, color:'#ECE3FF'},{offset:1, color:'#B8A9F5'}] },
+    beige:    { name: '베이지', color: '#FBF1E2' },
+    pink:     { name: '연분홍', color: '#FFE4EA' },
+    butter:   { name: '버터',   color: '#FFF1B8' },
+    sage:     { name: '세이지', color: '#E0EBDC' },
+    cream:    { name: '크림',   color: '#FFF6DC' },
+    paper:    { name: '흰색',   color: '#FFFCF7' }
+  };
+
   const STICKER_LIB = {
     '마음': ['🌸','💖','✨','💫','💕','🌟','🦋','🍀','🌷','🌼','🌺','🌻','🍃','💞','💝','🎀'],
     '동물': ['🐰','🐱','🐶','🐻','🐼','🦊','🐯','🐨','🐭','🐹','🐧','🦝','🐮','🦄','🐢','🐌'],
@@ -2527,9 +2578,10 @@
     document.getElementById('editorPrivate').style.display = isCover ? 'none' : 'flex';
     document.getElementById('editorPinned').style.display = (isCover || !currentUser.is_teacher) ? 'none' : 'flex';
 
-    // cover 모드 — 도구 제한: 스티커만
+    // cover 모드 — 도구 제한: 배경 + 스티커만
     document.querySelector('.tool-btn[data-tool="paper"]').style.display = isCover ? 'none' : 'inline-flex';
     document.querySelector('.tool-btn[data-tool="text"]').style.display = isCover ? 'none' : 'inline-flex';
+    document.querySelector('.tool-btn[data-tool="theme"]').style.display = isCover ? 'inline-flex' : 'none';
 
     // 패널 닫기
     document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
@@ -2559,6 +2611,7 @@
       buildPaperGrid();
       buildTextPanel();
       buildStickerPanel();
+      buildThemeGrid();
 
       if((mode === 'edit' || mode === 'cover') && entry?.decoration_data){
         editorLoad(entry.decoration_data);
@@ -2674,6 +2727,35 @@
       buildPaperGrid();
     }, {crossOrigin: 'anonymous'});
   }
+  function buildThemeGrid(){
+    const grid = document.getElementById('themeGrid');
+    grid.innerHTML = Object.entries(COVER_THEMES).map(([key, t])=>{
+      const bg = t.gradient
+        ? `linear-gradient(160deg, ${t.gradient.map(s => s.color).join(', ')})`
+        : t.color;
+      return `<div class="theme-thumb" style="background:${bg}" onclick="applyCoverTheme('${key}')">
+        <div class="theme-name">${t.name}</div>
+      </div>`;
+    }).join('');
+  }
+  function applyCoverTheme(themeKey){
+    const theme = COVER_THEMES[themeKey];
+    if(!theme || !editor.canvas) return;
+    const bg = editor.canvas.getObjects().find(o => o.isCoverTemplate && o.type === 'rect');
+    if(!bg) return;
+    if(theme.gradient){
+      const grad = new fabric.Gradient({
+        type: 'linear',
+        coords: { x1: 0, y1: 0, x2: CANVAS_W, y2: CANVAS_H },
+        colorStops: theme.gradient
+      });
+      bg.set('fill', grad);
+    } else {
+      bg.set('fill', theme.color);
+    }
+    editor.canvas.requestRenderAll();
+  }
+
   // 표지 기본 템플릿 (그라데이션 + 텍스트 — 학생은 이 위에 스티커만 추가)
   function loadCoverTemplate(){
     const grad = new fabric.Gradient({
@@ -2694,11 +2776,8 @@
     editor.canvas.sendToBack(bg);
 
     const items = [
-      { text: '✦ ✿ ✦', topRatio: 0.10, fontSize: 14, fill: 'rgba(74,59,46,0.45)', fontFamily: "'Gowun Dodum', sans-serif", charSpacing: 800 },
-      { text: '📓',     topRatio: 0.34, fontSize: 60, fontFamily: "'Gowun Dodum', sans-serif" },
-      { text: '202 일기장', topRatio: 0.48, fontSize: 38, fontWeight: 700, fill: '#4A3B2E', fontFamily: "'Gaegu', sans-serif" },
-      { text: '우리 반 마음을 모으는 곳', topRatio: 0.55, fontSize: 12, fill: 'rgba(74,59,46,0.72)', fontFamily: "'Gowun Dodum', sans-serif" },
-      { text: '2026',  topRatio: 0.85, fontSize: 22, fill: 'rgba(74,59,46,0.55)', fontFamily: "'Gaegu', sans-serif", charSpacing: 400 }
+      { text: '202 일기장', topRatio: 0.40, fontSize: 42, fontWeight: 700, fill: '#4A3B2E', fontFamily: "'Gaegu', sans-serif" },
+      { text: '2026',       topRatio: 0.85, fontSize: 22, fill: 'rgba(74,59,46,0.55)', fontFamily: "'Gaegu', sans-serif", charSpacing: 400 }
     ];
     items.forEach(it=>{
       const t = new fabric.Text(it.text, {
