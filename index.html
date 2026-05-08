@@ -2648,21 +2648,20 @@
       <div class="tape-thumb" onclick="editorAddTape('${t.key}')" title="${t.name}" style="background-image: url('${tapeDataURL(t)}')"></div>
     `).join('');
   }
-  // 마테 객체에 일관되게 적용하는 잠금/핸들/scaling 후크
+  // 마테 객체에 일관되게 적용 — 가로/세로 모두 늘리면 무늬가 옆/위아래로 반복됨
   function applyTapeBehavior(rect){
     rect.set({
-      lockScalingY: true,
       lockSkewingX: true,
       lockSkewingY: true,
     });
     rect.setControlsVisibility({
       tl: false, tr: false, bl: false, br: false,
-      mt: false, mb: false,
+      mt: true, mb: true,
       ml: true, mr: true,
       mtr: true
     });
-    // scaling 도중 scaleX → width로 즉시 변환 (무늬 stretch 방지, 옆으로 반복)
-    rect.off('scaling.tape');
+    // scaling 도중 scale → width/height 로 변환 (무늬 stretch 방지, 옆/아래로 반복)
+    rect.off('scaling');
     rect.on('scaling', function(){
       if(rect.scaleX && rect.scaleX !== 1){
         rect.set({
@@ -2670,8 +2669,12 @@
           scaleX: 1
         });
       }
-      // scaleY가 어쩌다 변경되면 강제로 1로
-      if(rect.scaleY !== 1) rect.set({ scaleY: 1 });
+      if(rect.scaleY && rect.scaleY !== 1){
+        rect.set({
+          height: Math.max(12, rect.height * rect.scaleY),
+          scaleY: 1
+        });
+      }
     });
   }
 
@@ -2681,7 +2684,7 @@
     fabric.Image.fromURL(tapeDataURL(tape), (img) => {
       const pattern = new fabric.Pattern({
         source: img.getElement(),
-        repeat: 'repeat-x'
+        repeat: 'repeat'
       });
       const rect = new fabric.Rect({
         left: CANVAS_W / 2,
