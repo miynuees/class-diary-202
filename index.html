@@ -1721,7 +1721,7 @@
 
   <div class="teacher-banner">🎓 선생님 모드 — 비밀글까지 모두 볼 수 있어요</div>
 
-  <main class="feed view-grid" id="feedMain">
+  <main class="feed view-book" id="feedMain">
     <div class="feed-intro">
       <strong>오늘은 누가 펜을 들까요?</strong><br>
       마음이 들 때 한 줄이라도 적어보세요.
@@ -1732,8 +1732,8 @@
         <button class="feed-tab" data-tab="mine" onclick="appSwitchTab('mine')">나의 일기장</button>
       </div>
       <div class="view-mode-toggle">
-        <button class="view-mode-btn active" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">⊞</button>
-        <button class="view-mode-btn" data-view="book" onclick="appSwitchView('book')" title="한 장씩 넘기기">📖</button>
+        <button class="view-mode-btn" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">⊞</button>
+        <button class="view-mode-btn active" data-view="book" onclick="appSwitchView('book')" title="한 장씩 넘기기">📖</button>
       </div>
     </div>
     <div id="cardList"></div>
@@ -1942,7 +1942,7 @@
   let editingCommentId = null;   // 댓글 인라인 편집 중인 id
   let activeTab = 'all';         // 'all' | 'mine'
   let prevLastVisitAt = null;    // NEW 판정용 직전 방문 시각
-  let viewMode = 'grid';         // 'grid' | 'book'
+  let viewMode = 'book';         // 'grid' | 'book'
   let bookIndex = 0;             // 북 모드 현재 페이지 인덱스
 
   // ───────── 화면 전환 / 토스트 ─────────
