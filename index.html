@@ -1474,14 +1474,14 @@
   @media (min-width: 640px){
     .paper-grid{ grid-template-columns: repeat(4, 1fr); }
   }
-  /* 마스킹테이프 그리드 (가로 길쭉한 미리보기 한 줄씩) */
+  /* 마테 그리드 (2열, SVG 비율 그대로) */
   .tape-grid{
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
   .tape-thumb{
-    height: 26px;
+    aspect-ratio: 200 / 26;
     border-radius: 3px;
     cursor: pointer;
     transition: transform .15s, box-shadow .15s;
@@ -1491,7 +1491,7 @@
     box-shadow: 0 1px 3px rgba(74, 59, 46, 0.12);
   }
   .tape-thumb:hover{
-    transform: translateX(3px) rotate(-1deg);
+    transform: scale(1.04) rotate(-1deg);
     box-shadow: 0 3px 8px rgba(74, 59, 46, 0.2);
   }
 
@@ -1902,7 +1902,7 @@
       <button class="tool-btn" data-tool="theme" onclick="editorTogglePanel('theme')" style="display:none;">🎨 배경</button>
       <button class="tool-btn" data-tool="text" onclick="editorAddText()">✎ 글자</button>
       <button class="tool-btn" data-tool="sticker" onclick="editorTogglePanel('sticker')">✿ 스티커</button>
-      <button class="tool-btn" data-tool="tape" onclick="editorTogglePanel('tape')">📏 테이프</button>
+      <button class="tool-btn" data-tool="tape" onclick="editorTogglePanel('tape')">📏 마테</button>
       <button class="tool-btn danger" id="toolDelete" onclick="editorDeleteSelected()" style="display:none;">🗑 지우기</button>
     </div>
 
@@ -1938,10 +1938,10 @@
       <div class="sticker-grid" id="stickerGrid"></div>
     </div>
 
-    <!-- 마스킹테이프 패널 -->
+    <!-- 마테 패널 -->
     <div class="tool-panel" id="panelTape">
       <button class="panel-close" onclick="editorClosePanel()">×</button>
-      <div class="panel-title">마스킹 테이프를 골라보세요</div>
+      <div class="panel-title">마테를 골라보세요</div>
       <div class="tape-grid" id="tapeGrid"></div>
     </div>
 
@@ -2652,16 +2652,32 @@
     const tape = TAPES.find(t => t.key === key);
     if(!tape) return;
     fabric.Image.fromURL(tapeDataURL(tape), (img) => {
-      const angle = (Math.random() * 16 - 8); // -8 ~ +8 도 살짝 기울어짐
-      img.set({
+      // 패턴으로 만들어 가로 길이 늘려도 세로 비율 유지 + 무늬가 반복되게
+      const pattern = new fabric.Pattern({
+        source: img.getElement(),
+        repeat: 'repeat-x'
+      });
+      const rect = new fabric.Rect({
         left: CANVAS_W / 2,
         top: CANVAS_H * 0.3,
         originX: 'center', originY: 'center',
-        angle,
+        width: 160,
+        height: 26,
+        fill: pattern,
+        angle: (Math.random() * 16 - 8),
+        strokeWidth: 0,
       });
-      img.isTape = true;
-      editor.canvas.add(img);
-      editor.canvas.setActiveObject(img);
+      rect.isTape = true;
+      rect.lockScalingY = true; // 세로 잠금
+      editor.canvas.add(rect);
+      editor.canvas.setActiveObject(rect);
+      // 좌/우 핸들만 + 회전만 활성화
+      rect.setControlsVisibility({
+        tl: false, tr: false, bl: false, br: false,
+        mt: false, mb: false,
+        ml: true, mr: true,
+        mtr: true
+      });
       editor.canvas.requestRenderAll();
     });
   }
@@ -3192,6 +3208,16 @@
       editor.canvas.getObjects().forEach(o => {
         if(o.isCoverTemplate){
           o.set({selectable: false, evented: false, hoverCursor: 'default'});
+        }
+        if(o.isTape){
+          // 테이프는 가로만 늘리기 + 회전 (세로 잠금)
+          o.lockScalingY = true;
+          o.setControlsVisibility({
+            tl: false, tr: false, bl: false, br: false,
+            mt: false, mb: false,
+            ml: true, mr: true,
+            mtr: true
+          });
         }
       });
       editor.canvas.renderAll();
