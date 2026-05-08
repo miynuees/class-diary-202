@@ -1104,6 +1104,27 @@
   .pinned-toggle .toggle-switch{ background: var(--ink-faint); }
   .pinned-toggle input:checked + .toggle-switch{ background: #E8B547; }
 
+  /* 메인 표지 꾸미기 버튼 */
+  .main-cover-btn{
+    display: block;
+    margin: 0 auto 20px;
+    background: var(--paper);
+    border: 1.5px dashed var(--pink-deep);
+    padding: 11px 22px;
+    border-radius: 18px;
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all .15s;
+    max-width: 100%;
+  }
+  .main-cover-btn:hover{
+    background: linear-gradient(135deg, #FFE9EA, #EFE9FF);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+  }
+
   /* ───── 보기 모드 토글 + 그리드 + 북 ───── */
   .feed-tabs-row{
     display:flex; align-items:center; justify-content:space-between;
@@ -1628,7 +1649,6 @@
         </div>
       </div>
     </div>
-    <button class="cover-edit-btn" id="coverEditBtn" onclick="appOpenCoverEditor(event)">✎ 내 표지 꾸미기</button>
   </div>
 </div>
 
@@ -1726,6 +1746,7 @@
       <strong>오늘은 누가 펜을 들까요?</strong><br>
       마음이 들 때 한 줄이라도 적어보세요.
     </div>
+    <button class="main-cover-btn" onclick="appOpenCoverEditor()">🖼 내 표지 꾸미기 — 스티커로 표지를 채워보세요</button>
     <div class="feed-tabs-row">
       <div class="feed-tabs">
         <button class="feed-tab active" data-tab="all" onclick="appSwitchTab('all')">전체</button>
@@ -2012,19 +2033,12 @@
   function applyUserCover(){
     const cover = document.getElementById('diaryCover');
     const customLayer = document.getElementById('coverCustomImage');
-    const editBtn = document.getElementById('coverEditBtn');
     if(currentUser?.cover_thumbnail){
       customLayer.style.backgroundImage = `url('${currentUser.cover_thumbnail}')`;
       cover.classList.add('has-custom');
     } else {
       customLayer.style.backgroundImage = '';
       cover.classList.remove('has-custom');
-    }
-    // 로그인된 사람만 "내 표지 꾸미기" 버튼 보임
-    if(currentUser){
-      editBtn.classList.add('show');
-    } else {
-      editBtn.classList.remove('show');
     }
   }
 
@@ -2513,6 +2527,10 @@
     document.getElementById('editorPrivate').style.display = isCover ? 'none' : 'flex';
     document.getElementById('editorPinned').style.display = (isCover || !currentUser.is_teacher) ? 'none' : 'flex';
 
+    // cover 모드 — 도구 제한: 스티커만
+    document.querySelector('.tool-btn[data-tool="paper"]').style.display = isCover ? 'none' : 'inline-flex';
+    document.querySelector('.tool-btn[data-tool="text"]').style.display = isCover ? 'none' : 'inline-flex';
+
     // 패널 닫기
     document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
@@ -2544,6 +2562,8 @@
 
       if((mode === 'edit' || mode === 'cover') && entry?.decoration_data){
         editorLoad(entry.decoration_data);
+      } else if(mode === 'cover'){
+        loadCoverTemplate();
       } else {
         editor.paperKey = 'plain';
         applyPaper('plain');
@@ -2654,6 +2674,50 @@
       buildPaperGrid();
     }, {crossOrigin: 'anonymous'});
   }
+  // 표지 기본 템플릿 (그라데이션 + 텍스트 — 학생은 이 위에 스티커만 추가)
+  function loadCoverTemplate(){
+    const grad = new fabric.Gradient({
+      type: 'linear',
+      coords: { x1: 0, y1: 0, x2: CANVAS_W, y2: CANVAS_H },
+      colorStops: [
+        { offset: 0, color: '#FFD2D6' },
+        { offset: 0.55, color: '#E2DCFF' },
+        { offset: 1, color: '#D5EFDC' }
+      ]
+    });
+    const bg = new fabric.Rect({
+      left: 0, top: 0, width: CANVAS_W, height: CANVAS_H,
+      fill: grad, selectable: false, evented: false, hoverCursor: 'default'
+    });
+    bg.isCoverTemplate = true;
+    editor.canvas.add(bg);
+    editor.canvas.sendToBack(bg);
+
+    const items = [
+      { text: '✦ ✿ ✦', topRatio: 0.10, fontSize: 14, fill: 'rgba(74,59,46,0.45)', fontFamily: "'Gowun Dodum', sans-serif", charSpacing: 800 },
+      { text: '📓',     topRatio: 0.34, fontSize: 60, fontFamily: "'Gowun Dodum', sans-serif" },
+      { text: '202 일기장', topRatio: 0.48, fontSize: 38, fontWeight: 700, fill: '#4A3B2E', fontFamily: "'Gaegu', sans-serif" },
+      { text: '우리 반 마음을 모으는 곳', topRatio: 0.55, fontSize: 12, fill: 'rgba(74,59,46,0.72)', fontFamily: "'Gowun Dodum', sans-serif" },
+      { text: '2026',  topRatio: 0.85, fontSize: 22, fill: 'rgba(74,59,46,0.55)', fontFamily: "'Gaegu', sans-serif", charSpacing: 400 }
+    ];
+    items.forEach(it=>{
+      const t = new fabric.Text(it.text, {
+        left: CANVAS_W / 2,
+        top: CANVAS_H * it.topRatio,
+        originX: 'center', originY: 'center',
+        fontSize: it.fontSize,
+        fontWeight: it.fontWeight || 400,
+        fill: it.fill || '#4A3B2E',
+        fontFamily: it.fontFamily,
+        charSpacing: it.charSpacing || 0,
+        selectable: false, evented: false, hoverCursor: 'default'
+      });
+      t.isCoverTemplate = true;
+      editor.canvas.add(t);
+    });
+    editor.canvas.requestRenderAll();
+  }
+
   function buildPaperGrid(){
     const grid = document.getElementById('paperGrid');
     grid.innerHTML = Object.entries(PAPERS).map(([key, p])=>`
@@ -2759,7 +2823,7 @@
     editor.canvas.discardActiveObject();
     editor.canvas.renderAll();
 
-    const data = editor.canvas.toJSON(['isPaper','isSticker']);
+    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate']);
     // 또렷한 썸네일 (캔버스 2배 픽셀로 — 큰 화면에서도 깨지지 않게)
     const thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
 
@@ -2846,6 +2910,12 @@
         editor.paperObj = paperImg;
         editor.canvas.sendToBack(paperImg);
       }
+      // 표지 템플릿 객체 보호 (못 움직이게)
+      editor.canvas.getObjects().forEach(o => {
+        if(o.isCoverTemplate){
+          o.set({selectable: false, evented: false, hoverCursor: 'default'});
+        }
+      });
       editor.canvas.renderAll();
     });
   }
