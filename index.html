@@ -3184,7 +3184,10 @@
 
   // ───── 저장 / 불러오기 ─────
   async function editorSave(){
-    if(!editor.canvas) return;
+    if(!editor.canvas){
+      showToast('편집기를 다시 열어주세요');
+      return;
+    }
     editor.canvas.discardActiveObject();
     editor.canvas.renderAll();
 
@@ -3201,6 +3204,12 @@
     const origText = btn.textContent;
     btn.disabled = true; btn.textContent = '저장 중...';
     const wasEditing = !!editingEntryId;
+
+    // 안전장치 — 25초 안에 응답 없으면 버튼 강제 해제 + 알림
+    const safetyTimer = setTimeout(() => {
+      btn.disabled = false; btn.textContent = origText;
+      showToast('서버 응답이 늦어요. 다시 시도해주세요.');
+    }, 25000);
 
     try {
       if(editor.mode === 'cover'){
@@ -3258,6 +3267,7 @@
       console.error(e);
       showToast('저장에 실패했어요');
     } finally {
+      clearTimeout(safetyTimer);
       btn.disabled = false; btn.textContent = origText;
     }
   }
