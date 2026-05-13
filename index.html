@@ -1944,10 +1944,7 @@
   <div class="modal editor-modal">
     <div class="editor-head">
       <div class="editor-title" id="writeModalTitle">오늘의 한 페이지</div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <button class="editor-save-sm" onclick="editorSave()">저장</button>
-        <button class="close-btn" onclick="appCloseEditor()">×</button>
-      </div>
+      <button class="close-btn" onclick="appCloseEditor()">×</button>
     </div>
 
     <div class="editor-canvas-wrap">
@@ -3504,27 +3501,54 @@
   }
 
   // ───────── 상세 ─────────
-  // 썸네일 없는 일기는 캔버스로 직접 그려서 보여주고, 가능하면 썸네일 자동 복구
+  // 썸네일 없는 일기는 캔버스로 직접 그려서 보여주고, 백그라운드로 썸네일 자동 복구
   function renderDetailCanvas(entry){
+    let cnv;
     try {
-      const cnv = new fabric.StaticCanvas('detailPageCanvas', {
+      cnv = new fabric.StaticCanvas('detailPageCanvas', {
         width: CANVAS_W, height: CANVAS_H,
         backgroundColor: '#FFFCF7'
       });
-      cnv.loadFromJSON(entry.decoration_data, async () => {
-        cnv.renderAll();
-        // 백그라운드로 썸네일 만들어 DB 업데이트
-        try {
-          const newThumb = cnv.toDataURL({format: 'jpeg', multiplier: 1, quality: 0.85});
-          if(newThumb){
-            await sb.from('entries').update({thumbnail: newThumb}).eq('id', entry.id);
-            entry.thumbnail = newThumb;
-          }
-        } catch(err){ console.warn('썸네일 자동 복구 실패', err); }
-      });
     } catch(e){
-      console.error('상세 렌더링 실패', e);
+      console.error('상세 캔버스 생성 실패', e);
+      return;
     }
+
+    cnv.loadFromJSON(entry.decoration_data, () => {
+      cnv.renderAll();
+      // 패턴 이미지 등 비동기 로드 끝날 시간 대기 후 썸네일 생성
+      setTimeout(async () => {
+        cnv.renderAll();
+        let newThumb = null;
+        const attempts = [
+          {format: 'jpeg', multiplier: 1,   quality: 0.85},
+          {format: 'jpeg', multiplier: 0.7, quality: 0.78},
+          {format: 'jpeg', multiplier: 0.5, quality: 0.72}
+        ];
+        for(const opt of attempts){
+          try {
+            newThumb = cnv.toDataURL(opt);
+            if(newThumb) break;
+          } catch(err){
+            console.warn('썸네일 복구 시도 실패', opt, err);
+          }
+        }
+        if(!newThumb){
+          console.warn('썸네일 자동 복구 - 모든 시도 실패');
+          return;
+        }
+        try {
+          const {error} = await sb.from('entries').update({thumbnail: newThumb}).eq('id', entry.id);
+          if(error){ console.warn('썸네일 DB 업데이트 실패', error); return; }
+          entry.thumbnail = newThumb;
+          // 카드 미리보기 즉시 갱신
+          renderFeed();
+          console.log('썸네일 자동 복구 성공', entry.id);
+        } catch(err){
+          console.warn('썸네일 DB 업데이트 예외', err);
+        }
+      }, 400);
+    });
   }
 
   function appOpenDetail(id){
