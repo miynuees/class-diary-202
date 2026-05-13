@@ -1694,6 +1694,19 @@
     box-shadow: var(--shadow-soft);
   }
   .editor-save-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  /* 헤더 우상단의 저장 버튼 (작은 사이즈, 모바일 보조용) */
+  .editor-save-sm{
+    background: linear-gradient(135deg, var(--pink-deep), var(--lav-deep));
+    color: #FFF;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: var(--shadow-soft);
+  }
 
   /* ───── 카드 썸네일 ───── */
   .diary-card.has-thumb{
@@ -1893,7 +1906,10 @@
   <div class="modal editor-modal">
     <div class="editor-head">
       <div class="editor-title" id="writeModalTitle">오늘의 한 페이지</div>
-      <button class="close-btn" onclick="appCloseEditor()">×</button>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="editor-save-sm" onclick="editorSave()">저장</button>
+        <button class="close-btn" onclick="appCloseEditor()">×</button>
+      </div>
     </div>
 
     <div class="editor-canvas-wrap">
