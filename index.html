@@ -2918,9 +2918,9 @@
       editor.sizeKey = matchedSize.key;
       buildTextPanel();
 
-      // 스티커가 아니고 편집 중이 아닐 때만 글자 패널 자동 열기
-      // (편집 중에는 키보드와 패널이 겹쳐 글 쓰기 방해)
-      if(!sel.isSticker && !sel.isEditing){
+      // 스티커·편집중·mainText 가 아닐 때만 글자 패널 자동 열기
+      // (mainText는 탭하면 글쓰기로 진입해야 자연스럽고, 패널은 글자 ✎ 버튼으로 별도로 열림)
+      if(!sel.isSticker && !sel.isEditing && !sel.isMainText){
         document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
         document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
         document.getElementById('panelText').classList.add('active');
@@ -3021,10 +3021,10 @@
   // 일기 메인 글쓰기 칸 (캔버스 가운데 고정 — 이동/크기 잠금, 편집만 가능)
   function loadMainTextBox(){
     const textbox = new fabric.Textbox('여기에 오늘의 일기를 적어보세요', {
-      left: CANVAS_W / 2,
-      top: CANVAS_H / 2,
+      left: 16,
+      top: 24,
       width: CANVAS_W - 32,
-      originX: 'center', originY: 'center',
+      originX: 'left', originY: 'top',
       fontSize: 15,
       fontFamily: "'Gowun Dodum', sans-serif",
       fill: '#4A3B2E',
@@ -3042,10 +3042,27 @@
       editable: true,
     });
     textbox.isMainText = true;
-    // 편집 시작 시 도구 패널 닫기 (글쓰기 방해 X)
-    textbox.on('editing:entered', () => editorClosePanel());
+    attachMainTextHandlers(textbox);
     editor.canvas.add(textbox);
     editor.canvas.requestRenderAll();
+  }
+
+  function attachMainTextHandlers(textbox){
+    // 편집 시작 시 도구 패널 닫기 (글쓰기 방해 X)
+    textbox.on('editing:entered', () => editorClosePanel());
+    // 글상자 탭하면 즉시 편집 모드 (단, 글자 ✎ 버튼으로 진입한 경우만은 패널 위해 잠시 보류)
+    textbox.on('mouseup', () => {
+      if(textbox.isEditing) return;
+      if(editor.suppressAutoEdit) return;
+      setTimeout(() => {
+        if(textbox.isEditing) return;
+        textbox.enterEditing();
+        if(textbox.text === '여기에 오늘의 일기를 적어보세요'){
+          textbox.selectAll();
+        }
+        editor.canvas.requestRenderAll();
+      }, 30);
+    });
   }
 
   // 표지 기본 템플릿 (그라데이션 + 텍스트 — 학생은 이 위에 스티커만 추가)
@@ -3139,18 +3156,17 @@
     buildTextPanel();
   }
   function editorAddText(){
-    // 일기 모드에선 정해진 글쓰기 칸으로 포커스 (새 박스 추가 X)
+    // 일기 모드 — 글자 버튼은 글꼴/색 설정 패널 토글. mainText 글쓰기는 글상자 직접 탭으로.
     if(editor.mode === 'new' || editor.mode === 'edit'){
       const mainText = editor.canvas.getObjects().find(o => o.isMainText);
       if(mainText){
-        // 패널 먼저 닫고 → 편집 모드 진입 (패널이 글쓰기 방해 안 하게)
-        editorClosePanel();
+        // mainText 선택만 (auto-enterEditing 잠시 차단)
+        editor.suppressAutoEdit = true;
+        if(mainText.isEditing){ try { mainText.exitEditing(); } catch(e){} }
         editor.canvas.setActiveObject(mainText);
-        mainText.enterEditing();
-        if(mainText.text === '여기에 오늘의 일기를 적어보세요'){
-          mainText.selectAll();
-        }
         editor.canvas.requestRenderAll();
+        setTimeout(() => { editor.suppressAutoEdit = false; }, 500);
+        editorTogglePanel('text');
         return;
       }
     }
@@ -3368,7 +3384,7 @@
             lockRotation: true,
             hasControls: false,
           });
-          o.on('editing:entered', () => editorClosePanel());
+          attachMainTextHandlers(o);
         }
       });
       editor.canvas.renderAll();
