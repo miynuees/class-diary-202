@@ -2918,9 +2918,9 @@
       editor.sizeKey = matchedSize.key;
       buildTextPanel();
 
-      // 스티커가 아닌 텍스트 박스라면, 글자 패널 자동으로 열어주기
-      // (이미 다른 패널이 열려있으면 그쪽으로 전환)
-      if(!sel.isSticker){
+      // 스티커가 아니고 편집 중이 아닐 때만 글자 패널 자동 열기
+      // (편집 중에는 키보드와 패널이 겹쳐 글 쓰기 방해)
+      if(!sel.isSticker && !sel.isEditing){
         document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
         document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
         document.getElementById('panelText').classList.add('active');
@@ -3042,6 +3042,8 @@
       editable: true,
     });
     textbox.isMainText = true;
+    // 편집 시작 시 도구 패널 닫기 (글쓰기 방해 X)
+    textbox.on('editing:entered', () => editorClosePanel());
     editor.canvas.add(textbox);
     editor.canvas.requestRenderAll();
   }
@@ -3141,9 +3143,10 @@
     if(editor.mode === 'new' || editor.mode === 'edit'){
       const mainText = editor.canvas.getObjects().find(o => o.isMainText);
       if(mainText){
+        // 패널 먼저 닫고 → 편집 모드 진입 (패널이 글쓰기 방해 안 하게)
+        editorClosePanel();
         editor.canvas.setActiveObject(mainText);
         mainText.enterEditing();
-        // 안내 문구일 때만 선택 (사용자가 쓴 글은 보존)
         if(mainText.text === '여기에 오늘의 일기를 적어보세요'){
           mainText.selectAll();
         }
@@ -3249,15 +3252,24 @@
       return;
     }
 
-    // 2) 썸네일 (실패해도 진행)
+    // 2) 썸네일 (단계별 폴백 — 모바일 메모리 부족 대응)
     let thumb = null;
-    try {
-      thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
-    } catch(e){
-      console.error('toDataURL 실패', e);
-      try { thumb = editor.canvas.toDataURL({format: 'jpeg', multiplier: 1, quality: 0.8}); } catch(e2){
-        console.error('썸네일 폴백도 실패', e2);
+    const thumbAttempts = [
+      {format: 'png',  multiplier: 1.5},
+      {format: 'jpeg', multiplier: 1.5, quality: 0.85},
+      {format: 'jpeg', multiplier: 1,   quality: 0.8},
+      {format: 'jpeg', multiplier: 0.8, quality: 0.75},
+    ];
+    for(const opt of thumbAttempts){
+      try {
+        thumb = editor.canvas.toDataURL(opt);
+        break;
+      } catch(e){
+        console.warn('썸네일 시도 실패', opt, e);
       }
+    }
+    if(!thumb){
+      console.error('썸네일 모든 시도 실패');
     }
 
     // 3) 텍스트 추출
@@ -3348,7 +3360,6 @@
           applyTapeBehavior(o);
         }
         if(o.isMainText){
-          // 일기 본문 칸 — 이동/크기/회전 잠금
           o.set({
             lockMovementX: true,
             lockMovementY: true,
@@ -3357,6 +3368,7 @@
             lockRotation: true,
             hasControls: false,
           });
+          o.on('editing:entered', () => editorClosePanel());
         }
       });
       editor.canvas.renderAll();
