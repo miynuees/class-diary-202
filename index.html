@@ -2847,8 +2847,10 @@
       } else if(mode === 'cover'){
         loadCoverTemplate();
       } else {
-        editor.paperKey = 'plain';
-        applyPaper('plain');
+        // 일기 새로 쓰기 — 줄 노트 종이 + 정해진 글쓰기 칸
+        editor.paperKey = 'lined';
+        applyPaper('lined');
+        setTimeout(() => loadMainTextBox(), 100);
       }
     }, 50);
   }
@@ -2997,6 +2999,34 @@
     editor.canvas.requestRenderAll();
   }
 
+  // 일기 메인 글쓰기 칸 (캔버스 가운데 고정 — 이동/크기 잠금, 편집만 가능)
+  function loadMainTextBox(){
+    const textbox = new fabric.Textbox('여기에 오늘의 일기를 적어보세요', {
+      left: CANVAS_W / 2,
+      top: CANVAS_H / 2,
+      width: CANVAS_W - 32,
+      originX: 'center', originY: 'center',
+      fontSize: 15,
+      fontFamily: "'Gowun Dodum', sans-serif",
+      fill: '#4A3B2E',
+      textAlign: 'left',
+      lineHeight: 1.6,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true,
+      hasControls: false,
+      borderColor: 'rgba(245,165,171,0.45)',
+      editingBorderColor: 'rgba(245,165,171,0.9)',
+      splitByGrapheme: true,
+      editable: true,
+    });
+    textbox.isMainText = true;
+    editor.canvas.add(textbox);
+    editor.canvas.requestRenderAll();
+  }
+
   // 표지 기본 템플릿 (그라데이션 + 텍스트 — 학생은 이 위에 스티커만 추가)
   function loadCoverTemplate(){
     const grad = new fabric.Gradient({
@@ -3088,10 +3118,25 @@
     buildTextPanel();
   }
   function editorAddText(){
+    // 일기 모드에선 정해진 글쓰기 칸으로 포커스 (새 박스 추가 X)
+    if(editor.mode === 'new' || editor.mode === 'edit'){
+      const mainText = editor.canvas.getObjects().find(o => o.isMainText);
+      if(mainText){
+        editor.canvas.setActiveObject(mainText);
+        mainText.enterEditing();
+        // 안내 문구일 때만 선택 (사용자가 쓴 글은 보존)
+        if(mainText.text === '여기에 오늘의 일기를 적어보세요'){
+          mainText.selectAll();
+        }
+        editor.canvas.requestRenderAll();
+        return;
+      }
+    }
+    // (cover/그 외) 자유 텍스트 추가
     const font = FONTS.find(f=>f.key===editor.fontKey);
     const size = TEXT_SIZES.find(s=>s.key===editor.sizeKey).size;
     const text = new fabric.IText('탭해서 글자 입력', {
-      left: CANVAS_W/2, top: CANVAS_H * 0.28,  // 위쪽 28% 지점
+      left: CANVAS_W/2, top: CANVAS_H * 0.28,
       originX: 'center', originY: 'center',
       fontFamily: font.family,
       fontSize: size,
@@ -3143,7 +3188,7 @@
     editor.canvas.discardActiveObject();
     editor.canvas.renderAll();
 
-    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape']);
+    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape','isMainText']);
     // 또렷한 썸네일 (캔버스 2배 픽셀로 — 큰 화면에서도 깨지지 않게)
     const thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
 
@@ -3237,6 +3282,17 @@
         }
         if(o.isTape){
           applyTapeBehavior(o);
+        }
+        if(o.isMainText){
+          // 일기 본문 칸 — 이동/크기/회전 잠금
+          o.set({
+            lockMovementX: true,
+            lockMovementY: true,
+            lockScalingX: true,
+            lockScalingY: true,
+            lockRotation: true,
+            hasControls: false,
+          });
         }
       });
       editor.canvas.renderAll();
