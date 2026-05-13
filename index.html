@@ -3501,6 +3501,28 @@
   }
 
   // ───────── 상세 ─────────
+  // 모바일 호환성 좋은 썸네일 캡처 — HTMLCanvas의 toDataURL 직접 사용
+  async function captureCanvasThumb(cnv){
+    // 시도 1: 내부 HTMLCanvasElement에서 직접 (추가 메모리 X, 가장 안정)
+    try {
+      const lower = cnv.lowerCanvasEl || cnv.getElement?.();
+      if(lower && typeof lower.toDataURL === 'function'){
+        const result = lower.toDataURL('image/jpeg', 0.85);
+        if(result && result.length > 1000) return result;
+      }
+    } catch(e){ console.warn('lower toDataURL 실패', e); }
+
+    // 시도 2: fabric toDataURL multiplier 1
+    try { return cnv.toDataURL({format: 'jpeg', multiplier: 1, quality: 0.82}); }
+    catch(e){ console.warn('fabric 1배 실패', e); }
+
+    // 시도 3: 더 작게
+    try { return cnv.toDataURL({format: 'jpeg', multiplier: 0.7, quality: 0.75}); }
+    catch(e){ console.warn('fabric 0.7배 실패', e); }
+
+    return null;
+  }
+
   // 썸네일 없는 일기는 캔버스로 직접 그려서 보여주고, 백그라운드로 썸네일 자동 복구
   function renderDetailCanvas(entry){
     let cnv;
@@ -3516,38 +3538,28 @@
 
     cnv.loadFromJSON(entry.decoration_data, () => {
       cnv.renderAll();
-      // 패턴 이미지 등 비동기 로드 끝날 시간 대기 후 썸네일 생성
-      setTimeout(async () => {
-        cnv.renderAll();
-        let newThumb = null;
-        const attempts = [
-          {format: 'jpeg', multiplier: 1,   quality: 0.85},
-          {format: 'jpeg', multiplier: 0.7, quality: 0.78},
-          {format: 'jpeg', multiplier: 0.5, quality: 0.72}
-        ];
-        for(const opt of attempts){
-          try {
-            newThumb = cnv.toDataURL(opt);
-            if(newThumb) break;
-          } catch(err){
-            console.warn('썸네일 복구 시도 실패', opt, err);
-          }
-        }
-        if(!newThumb){
-          console.warn('썸네일 자동 복구 - 모든 시도 실패');
-          return;
-        }
-        try {
-          const {error} = await sb.from('entries').update({thumbnail: newThumb}).eq('id', entry.id);
-          if(error){ console.warn('썸네일 DB 업데이트 실패', error); return; }
-          entry.thumbnail = newThumb;
-          // 카드 미리보기 즉시 갱신
-          renderFeed();
-          console.log('썸네일 자동 복구 성공', entry.id);
-        } catch(err){
-          console.warn('썸네일 DB 업데이트 예외', err);
-        }
-      }, 400);
+      // 패턴 이미지 등 비동기 로드 완료 + 두 번 페인트 후 캡처
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(async () => {
+            cnv.renderAll();
+            const newThumb = await captureCanvasThumb(cnv);
+            if(!newThumb){
+              console.warn('썸네일 자동 복구 - 모든 시도 실패');
+              return;
+            }
+            try {
+              const {error} = await sb.from('entries').update({thumbnail: newThumb}).eq('id', entry.id);
+              if(error){ console.warn('썸네일 DB 업데이트 실패', error); return; }
+              entry.thumbnail = newThumb;
+              renderFeed();
+              console.log('썸네일 자동 복구 성공', entry.id);
+            } catch(err){
+              console.warn('썸네일 DB 업데이트 예외', err);
+            }
+          }, 500);
+        });
+      });
     });
   }
 
