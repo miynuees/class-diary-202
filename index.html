@@ -1426,13 +1426,13 @@
   .tool-panel{
     position: absolute;
     left: 12px; right: 12px;
-    bottom: 76px;
+    bottom: 88px;
     background: var(--paper);
     border: 1.5px solid var(--line);
     border-radius: 20px;
     padding: 18px 16px 16px;
-    max-height: 65vh;
-    min-height: 360px;
+    max-height: 60vh;
+    min-height: 340px;
     overflow-y: auto;
     display: none;
     z-index: 50;
@@ -1650,13 +1650,16 @@
     transform: scale(1.08);
   }
 
-  /* 저장 옵션 */
+  /* 저장 옵션 — 항상 시트보다 위 */
   .editor-options{
     flex-shrink: 0;
     display:flex; gap:6px; align-items:center;
     margin-top: 8px;
     padding-top: 10px;
     border-top: 1px solid var(--line);
+    position: relative;
+    z-index: 70;
+    background: var(--paper);
   }
   .editor-option-toggle{
     display:flex; align-items:center; gap:6px;
@@ -3188,7 +3191,16 @@
       showToast('편집기를 다시 열어주세요');
       return;
     }
+    // 텍스트 편집 중이면 종료 (모바일 키보드 닫힘)
+    const activeObj = editor.canvas.getActiveObject();
+    if(activeObj && activeObj.isEditing){
+      activeObj.exitEditing();
+    }
     editor.canvas.discardActiveObject();
+    // 포커스 강제 해제 (모바일 키보드 내려가게)
+    if(document.activeElement && document.activeElement.blur){
+      document.activeElement.blur();
+    }
     editor.canvas.renderAll();
 
     const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape','isMainText']);
@@ -3831,6 +3843,24 @@
     if(!iso) return '─';
     const d = new Date(iso);
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  // ───────── 모바일 키보드 대응 (저장 버튼이 키보드에 안 가리게) ─────────
+  if(window.visualViewport){
+    const adjustForKeyboard = () => {
+      const modal = document.getElementById('modalWrite');
+      if(!modal || !modal.classList.contains('active')) return;
+      const opts = modal.querySelector('.editor-options');
+      if(!opts) return;
+      const kbHeight = window.innerHeight - window.visualViewport.height;
+      if(kbHeight > 100){
+        opts.style.transform = `translateY(-${kbHeight - 8}px)`;
+      } else {
+        opts.style.transform = '';
+      }
+    };
+    window.visualViewport.addEventListener('resize', adjustForKeyboard);
+    window.visualViewport.addEventListener('scroll', adjustForKeyboard);
   }
 
   // ───────── 모달 배경 클릭으로 닫기 ─────────
