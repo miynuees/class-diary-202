@@ -1948,7 +1948,6 @@
     <div class="editor-toolbar">
       <button class="tool-btn" data-tool="paper" onclick="editorTogglePanel('paper')">📄 종이</button>
       <button class="tool-btn" data-tool="theme" onclick="editorTogglePanel('theme')" style="display:none;">🎨 배경</button>
-      <button class="tool-btn" data-tool="text" onclick="editorAddText()">✎ 글자</button>
       <button class="tool-btn" data-tool="sticker" onclick="editorTogglePanel('sticker')">✿ 스티커</button>
       <button class="tool-btn" data-tool="tape" onclick="editorTogglePanel('tape')">📏 마테</button>
       <button class="tool-btn danger" id="toolDelete" onclick="editorDeleteSelected()" style="display:none;">🗑 지우기</button>
@@ -2871,9 +2870,8 @@
     document.getElementById('editorPrivate').style.display = isCover ? 'none' : 'flex';
     document.getElementById('editorPinned').style.display = (isCover || !currentUser.is_teacher) ? 'none' : 'flex';
 
-    // cover 모드 — 도구 제한: 배경 + 스티커만
+    // cover 모드 — 도구 제한: 배경 + 스티커만 (종이 도구 숨김)
     document.querySelector('.tool-btn[data-tool="paper"]').style.display = isCover ? 'none' : 'inline-flex';
-    document.querySelector('.tool-btn[data-tool="text"]').style.display = isCover ? 'none' : 'inline-flex';
     document.querySelector('.tool-btn[data-tool="theme"]').style.display = isCover ? 'inline-flex' : 'none';
 
     // 일기 모드일 때만 캔버스 우상단 "Aa" 글꼴 버튼 보임
