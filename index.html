@@ -1384,6 +1384,34 @@
     padding: 6px;
     display:flex; justify-content:center;
     margin-bottom: 8px;
+    position: relative;
+  }
+  /* 글꼴 설정 버튼 — 일기 모드에서 캔버스 우상단에 항상 떠있음 */
+  .canvas-aa-btn{
+    display: none;
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--pink-deep);
+    background: rgba(255, 253, 250, 0.95);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(74, 59, 46, 0.2);
+    z-index: 15;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Pretendard', sans-serif;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .canvas-aa-btn.show{ display: flex; }
+  .canvas-aa-btn:hover{
+    transform: scale(1.06);
+    box-shadow: 0 5px 14px rgba(74, 59, 46, 0.28);
   }
   .editor-canvas-wrap canvas{
     border-radius: 10px;
@@ -1914,6 +1942,7 @@
 
     <div class="editor-canvas-wrap">
       <canvas id="diaryCanvas" width="320" height="440"></canvas>
+      <button class="canvas-aa-btn" id="canvasAaBtn" onclick="appOpenTextSettings()" title="글꼴 설정">Aa</button>
     </div>
 
     <div class="editor-toolbar">
@@ -2799,6 +2828,30 @@
     editorOpen('edit', e);
   }
 
+  function appOpenTextSettings(){
+    if(!editor.canvas) return;
+    editor.suppressAutoEdit = true;
+    const main = editor.canvas.getObjects().find(o => o.isMainText);
+    if(main){
+      if(main.isEditing){ try { main.exitEditing(); } catch(e){} }
+      // 포커스 해제 (모바일 키보드 내려가게)
+      if(document.activeElement && document.activeElement.blur){
+        try { document.activeElement.blur(); } catch(e){}
+      }
+      editor.canvas.setActiveObject(main);
+      editor.canvas.requestRenderAll();
+    }
+    setTimeout(() => { editor.suppressAutoEdit = false; }, 500);
+    // 글꼴 패널 강제 열기 (이미 열려있으면 그대로)
+    document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
+    document.getElementById('panelText').classList.add('active');
+    const textBtn = document.querySelector('.tool-btn[data-tool="text"]');
+    if(textBtn) textBtn.classList.add('active');
+    editor.activeTool = 'text';
+    buildTextPanel();
+  }
+
   function editorOpen(mode, entry){
     editor.mode = mode;
     if(mode === 'cover'){
@@ -2822,6 +2875,10 @@
     document.querySelector('.tool-btn[data-tool="paper"]').style.display = isCover ? 'none' : 'inline-flex';
     document.querySelector('.tool-btn[data-tool="text"]').style.display = isCover ? 'none' : 'inline-flex';
     document.querySelector('.tool-btn[data-tool="theme"]').style.display = isCover ? 'inline-flex' : 'none';
+
+    // 일기 모드일 때만 캔버스 우상단 "Aa" 글꼴 버튼 보임
+    const aaBtn = document.getElementById('canvasAaBtn');
+    if(aaBtn) aaBtn.classList.toggle('show', !isCover);
 
     // 패널 닫기
     document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
@@ -2879,6 +2936,8 @@
       try { editor.canvas.dispose(); } catch(e){}
       editor.canvas = null;
     }
+    const aaBtn = document.getElementById('canvasAaBtn');
+    if(aaBtn) aaBtn.classList.remove('show');
     appCloseModal('modalWrite');
   }
 
