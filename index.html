@@ -1224,6 +1224,26 @@
   .feed.view-grid .comment-mini{ font-size: 10px; padding: 2px 6px; }
   .feed.view-grid .new-badge{ font-size: 9px; padding: 1px 5px; }
 
+  /* 카드 본문 영역 — 그리드는 텍스트 미리보기, 책은 캔버스 */
+  .card-canvas-wrap{ display: none; }
+  .card-text-preview{ display: block; }
+  .feed.view-book .card-canvas-wrap{
+    display: flex; justify-content: center; align-items: center;
+    margin: 10px 0;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 6px;
+  }
+  .feed.view-book .card-text-preview{ display: none; }
+  .card-canvas{
+    width: 100% !important;
+    max-width: 320px;
+    height: auto !important;
+    border-radius: 8px;
+    background: #FFFCF7;
+    display: block;
+  }
+
   /* 북 모드 (한 장씩 — 진짜 책 넘기는 3D 효과) */
   .feed.view-book #cardList{
     position: relative;
@@ -1920,8 +1940,8 @@
         <button class="feed-tab" data-tab="mine" onclick="appSwitchTab('mine')">나의 일기장</button>
       </div>
       <div class="view-mode-toggle">
-        <button class="view-mode-btn" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">🗂️</button>
         <button class="view-mode-btn active" data-view="book" onclick="appSwitchView('book')" title="한 장씩 넘기기">📖</button>
+        <button class="view-mode-btn" data-view="grid" onclick="appSwitchView('grid')" title="한눈에 보기">🗂️</button>
       </div>
     </div>
     <div class="book-stage">
@@ -2147,6 +2167,7 @@
   let prevLastVisitAt = null;    // NEW 판정용 직전 방문 시각
   let viewMode = 'book';         // 'grid' | 'book'
   let bookIndex = 0;             // 북 모드 현재 페이지 인덱스
+  let bookIndexInitialized = false; // 첫 로드 시 마지막 페이지로 점프할지
 
   // ───────── 화면 전환 / 토스트 ─────────
   function showScreen(id){
@@ -2410,6 +2431,8 @@
       b.classList.toggle('active', b.dataset.tab === 'all');
     });
 
+    bookIndexInitialized = false; // 메인 진입할 때마다 마지막 페이지(최근 글)로 시작
+
     showScreen('screen-main');
     loadFeed();
   }
@@ -2467,6 +2490,13 @@
     const cards = document.querySelectorAll('#cardList .diary-card');
     cards.forEach((c, i)=>{
       c.classList.remove('flip-next','flip-prev','book-active');
+      // 캔버스 정리 (이전에 그려뒀던 active 카드)
+      if(c._fabricCanvas){
+        try { c._fabricCanvas.dispose(); } catch(e){}
+        c._fabricCanvas = null;
+        const wrap = c.querySelector('.card-canvas-wrap');
+        if(wrap) wrap.innerHTML = '';
+      }
       if(i === bookIndex){
         c.classList.add('book-active');
         if(direction === 'next') c.classList.add('flip-next');
@@ -2481,6 +2511,36 @@
     const lastBtn = document.getElementById('bookLast');
     if(firstBtn) firstBtn.disabled = bookIndex <= 0;
     if(lastBtn) lastBtn.disabled = bookIndex >= total - 1;
+
+    // 활성 카드에 캔버스 렌더링 (책 모드만)
+    if(viewMode === 'book' && cards[bookIndex]){
+      renderCardCanvas(cards[bookIndex]);
+    }
+  }
+
+  // 책 모드 - 활성 카드 안에 fabric 캔버스로 직접 렌더링 (꾸민 페이지)
+  function renderCardCanvas(cardEl){
+    const entryId = cardEl.dataset.entryId;
+    if(!entryId) return;
+    const entry = entriesCache.find(e => e.id === entryId);
+    if(!entry || !entry.decoration_data) return;
+    const wrap = cardEl.querySelector('.card-canvas-wrap');
+    if(!wrap) return;
+    // 캔버스 element 추가
+    wrap.innerHTML = `<canvas class="card-canvas" width="${CANVAS_W}" height="${CANVAS_H}"></canvas>`;
+    const canvasEl = wrap.querySelector('canvas');
+    try {
+      const cnv = new fabric.StaticCanvas(canvasEl, {
+        width: CANVAS_W, height: CANVAS_H,
+        backgroundColor: '#FFFCF7',
+      });
+      cnv.loadFromJSON(entry.decoration_data, () => {
+        cnv.renderAll();
+      });
+      cardEl._fabricCanvas = cnv;
+    } catch(e){
+      console.warn('카드 캔버스 렌더 실패', e);
+    }
   }
 
   // 북 모드: 터치 스와이프로 페이지 넘기기
@@ -2582,8 +2642,8 @@
       const authorNick = e.author?.nickname || '─';
       const card = document.createElement('div');
       card.className = `diary-card color-${e.color || 'pink'}`;
+      card.dataset.entryId = e.id;
       if(e.is_pinned) card.classList.add('pinned');
-      if(e.thumbnail) card.classList.add('has-thumb');
 
       const tags = [];
       if(e.is_pinned) tags.push('<span class="pinned-tag">📌 공지</span>');
@@ -2622,32 +2682,26 @@
           <span class="react-mini-row">${reactItems}${commentChip}</span>
         </div>`;
 
-      if(e.thumbnail){
-        // 꾸민 페이지 — 썸네일 이미지로 표시
-        card.innerHTML = `
-          <div class="card-thumb-wrap">
-            <img class="card-thumb" src="${escapeAttr(e.thumbnail)}" alt="" loading="lazy" />
-          </div>
-          <div class="card-overlay">
-            ${headHTML}
-            ${metaHTML}
-          </div>
-        `;
-      } else {
-        // 옛 텍스트 일기 — 기존 방식
-        card.innerHTML = `
-          ${headHTML}
-          <div class="card-body clamp">${escapeHtml(e.body || '')}</div>
-          ${metaHTML}
-        `;
-      }
+      // 공통 구조: head + (책 모드 캔버스 영역 + 그리드 모드 텍스트 미리보기) + meta
+      const previewText = e.body && e.body.trim() ? e.body : (e.decoration_data ? '🎨 꾸민 페이지 — 펼쳐서 보기' : '');
+      card.innerHTML = `
+        ${headHTML}
+        <div class="card-canvas-wrap"></div>
+        <div class="card-text-preview"><div class="card-body clamp">${escapeHtml(previewText)}</div></div>
+        ${metaHTML}
+      `;
       card.addEventListener('click', ()=>appOpenDetail(e.id));
       list.appendChild(card);
     });
 
-    // 북 모드면 현재 페이지만 active
+    // 북 모드면 현재 페이지만 active + 그 카드에 캔버스 렌더링
     if(viewMode === 'book'){
       if(bookIndex >= visible.length) bookIndex = Math.max(0, visible.length - 1);
+      // 첫 로드면 마지막 페이지(최근 글)로
+      if(!bookIndexInitialized && visible.length > 0){
+        bookIndex = visible.length - 1;
+        bookIndexInitialized = true;
+      }
       updateBookActive();
     }
   }
@@ -3332,25 +3386,8 @@
       return;
     }
 
-    // 2) 썸네일 — 모바일 메모리 안전을 위해 JPEG 작은 사이즈부터
-    let thumb = null;
-    const thumbAttempts = [
-      {format: 'jpeg', multiplier: 1.2, quality: 0.88},
-      {format: 'jpeg', multiplier: 1,   quality: 0.82},
-      {format: 'jpeg', multiplier: 0.7, quality: 0.78},
-      {format: 'jpeg', multiplier: 0.5, quality: 0.72},
-    ];
-    for(const opt of thumbAttempts){
-      try {
-        thumb = editor.canvas.toDataURL(opt);
-        break;
-      } catch(e){
-        console.warn('썸네일 시도 실패', opt, e);
-      }
-    }
-    if(!thumb){
-      console.error('썸네일 모든 시도 실패');
-    }
+    // 2) 썸네일 생성 안 함 — 책 모드에서 캔버스로 직접 그리는 방식으로 변경됨
+    const thumb = null;
 
     // 3) 텍스트 추출
     const allText = editor.canvas.getObjects()
