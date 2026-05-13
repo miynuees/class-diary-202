@@ -3207,37 +3207,63 @@
       showToast('편집기를 다시 열어주세요');
       return;
     }
-    // 텍스트 편집 중이면 종료 (모바일 키보드 닫힘)
-    const activeObj = editor.canvas.getActiveObject();
-    if(activeObj && activeObj.isEditing){
-      activeObj.exitEditing();
-    }
-    editor.canvas.discardActiveObject();
-    // 포커스 강제 해제 (모바일 키보드 내려가게)
-    if(document.activeElement && document.activeElement.blur){
-      document.activeElement.blur();
-    }
-    editor.canvas.renderAll();
 
-    const data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape','isMainText']);
-    // 또렷한 썸네일 (캔버스 2배 픽셀로 — 큰 화면에서도 깨지지 않게)
-    const thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
-
-    // 텍스트 추출 (검색용)
-    const allText = editor.canvas.getObjects()
-      .filter(o => (o.type === 'i-text' || o.type === 'textbox') && !o.isSticker)
-      .map(o => o.text || '').join('\n').trim();
-
+    // 모든 저장 버튼 (위 작은 거 + 아래 큰 거)
     const btn = document.getElementById('editorSaveBtn');
-    const origText = btn.textContent;
-    btn.disabled = true; btn.textContent = '저장 중...';
+    const btnSm = document.querySelector('.editor-save-sm');
+    const origText = btn ? btn.textContent : '저장';
+    const origSm = btnSm ? btnSm.textContent : '저장';
+    const lockBtns = (locked) => {
+      if(btn){ btn.disabled = locked; btn.textContent = locked ? '저장 중...' : origText; }
+      if(btnSm){ btnSm.disabled = locked; btnSm.textContent = locked ? '저장중' : origSm; }
+    };
+    lockBtns(true);
     const wasEditing = !!editingEntryId;
 
     // 안전장치 — 25초 안에 응답 없으면 버튼 강제 해제 + 알림
     const safetyTimer = setTimeout(() => {
-      btn.disabled = false; btn.textContent = origText;
+      lockBtns(false);
       showToast('서버 응답이 늦어요. 다시 시도해주세요.');
     }, 25000);
+
+    // 텍스트 편집 중이면 종료 + 키보드 닫기
+    try {
+      const activeObj = editor.canvas.getActiveObject();
+      if(activeObj && activeObj.isEditing){ activeObj.exitEditing(); }
+      editor.canvas.discardActiveObject();
+    } catch(e){ console.warn('exit edit fail', e); }
+    if(document.activeElement && document.activeElement.blur){
+      try { document.activeElement.blur(); } catch(e){}
+    }
+    editor.canvas.renderAll();
+    await new Promise(r => setTimeout(r, 30));
+
+    // 1) 페이지 데이터 직렬화
+    let data;
+    try {
+      data = editor.canvas.toJSON(['isPaper','isSticker','isCoverTemplate','isTape','isMainText']);
+    } catch(e){
+      console.error('toJSON 실패', e);
+      clearTimeout(safetyTimer); lockBtns(false);
+      showToast('페이지 변환 실패: ' + (e?.message || '알 수 없음'));
+      return;
+    }
+
+    // 2) 썸네일 (실패해도 진행)
+    let thumb = null;
+    try {
+      thumb = editor.canvas.toDataURL({format: 'png', multiplier: 2});
+    } catch(e){
+      console.error('toDataURL 실패', e);
+      try { thumb = editor.canvas.toDataURL({format: 'jpeg', multiplier: 1, quality: 0.8}); } catch(e2){
+        console.error('썸네일 폴백도 실패', e2);
+      }
+    }
+
+    // 3) 텍스트 추출
+    const allText = editor.canvas.getObjects()
+      .filter(o => (o.type === 'i-text' || o.type === 'textbox') && !o.isSticker)
+      .map(o => o.text || '').join('\n').trim();
 
     try {
       if(editor.mode === 'cover'){
@@ -3293,10 +3319,10 @@
       }
     } catch(e){
       console.error(e);
-      showToast('저장에 실패했어요');
+      showToast('저장 실패: ' + (e?.message || '알 수 없음'));
     } finally {
       clearTimeout(safetyTimer);
-      btn.disabled = false; btn.textContent = origText;
+      lockBtns(false);
     }
   }
 
